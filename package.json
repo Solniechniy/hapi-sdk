@@ -1,0 +1,46 @@
+{
+  "name": "hapi-ton-sdk",
+  "version": "0.0.1",
+  "description": "SDK for managing HAPI attestations on TON network",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && webpack --mode production",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "prepare": "npm run build",
+    "start:test": "node examples/server.js"
+  },
+  "dependencies": {
+    "@ton-api/client": "^0.3.1",
+    "@ton-api/ton-adapter": "^0.3.0",
+    "@ton/core": "^0.60.0",
+    "@ton/crypto": "^3.2.0",
+    "@ton/ton": "^13.9.0",
+    "@tonconnect/ui-react": "^2.0.0",
+    "@types/react": "^19.0.10",
+    "axios": "^1.6.7",
+    "buffer": "^6.0.3",
+    "express": "^4.18.2",
+    "react": "^19.0.0",
+    "react-scripts": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
+    "eslint": "^8.56.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
+  },
+  "keywords": [
+    "ton",
+    "blockchain",
+    "attestation",
+    "sdk"
+  ],
+  "author": "",
+  "license": "MIT"
+}
