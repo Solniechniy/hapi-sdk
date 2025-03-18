@@ -1,8 +1,8 @@
-import { Address, toNano } from "@ton/core";
-import axios from "axios";
+import { Address, ContractProvider, Sender, toNano } from "@ton/core";
+import axios, { AxiosError } from "axios";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
-import { SDKConfig, TrustScoreResponse } from "../types";
+import { SDKConfig, TrustScoreResponse, AttestationOptions } from "../types";
 import { HapiTonAttestation } from "../contracts/HapiAttestation";
 import { UserTonJetton } from "../contracts/UserJetton";
 import {
@@ -11,26 +11,72 @@ import {
   TON_MIN_COMMISSION,
   TON_MIN_JETTON_STORAGE,
 } from "../utils";
+import { config } from "../../config";
 
+/**
+ * HapiSDK - Core SDK for managing TON attestations
+ */
 export class HapiSDK {
   private config: SDKConfig;
   private publicClient: TonApiClient;
   private contractAdapter: ContractAdapter;
+  private contractAddress: Address;
 
-  constructor(config: SDKConfig) {
-    this.config = config;
-    this.publicClient = new TonApiClient({
-      baseUrl: config.nodeUrl,
-      baseApiParams: {
-        headers: {
-          Authorization: `Bearer ${config.tonApiKey}`,
-          "Content-type": "application/json",
+  /**
+   * Initialize the SDK
+   * @param args Configuration parameters
+   */
+  constructor(args: {
+    referralId: number;
+    publicClient?: string | TonApiClient;
+    tonApiKey?: string;
+    endpoint?: string;
+    contractAddress?: string;
+  }) {
+    this.config = {
+      hapiEndpoint: args.endpoint || config.apiStaging,
+      contractAddress: args.contractAddress || config.ton.score,
+      nodeUrl: config.ton.nodeUrl,
+      referralId: args.referralId,
+      tonApiKey: args.tonApiKey,
+    };
+
+    if (typeof args.publicClient === "string") {
+      this.publicClient = new TonApiClient({
+        baseUrl: args.publicClient,
+        baseApiParams: {
+          headers: {
+            Authorization: `Bearer ${args.tonApiKey}`,
+            "Content-type": "application/json",
+          },
         },
-      },
-    });
+      });
+    } else if (args.publicClient) {
+      this.publicClient = args.publicClient;
+    } else {
+      throw new Error("Public client is required");
+    }
+
     this.contractAdapter = new ContractAdapter(this.publicClient);
+    this.contractAddress = Address.parse(this.config.contractAddress);
   }
 
+  /**
+   * Get HAPI contract instance
+   * @returns HapiTonAttestation contract instance
+   */
+  private getHapiContract(): HapiTonAttestation {
+    return HapiTonAttestation.createFromAddress(
+      this.contractAddress,
+      this.contractAdapter
+    );
+  }
+
+  /**
+   * Retrieve user's trust score using JWT
+   * @param jwt Authentication token
+   * @returns Trust score data
+   */
   async getTrustScore(jwt: string): Promise<TrustScoreResponse> {
     try {
       const response = await axios.get(
@@ -43,10 +89,21 @@ export class HapiSDK {
       );
       return response.data;
     } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.response) {
+        throw new Error(
+          `Failed to get trust score: ${axiosError.response.status} - ${axiosError.response.statusText}`
+        );
+      }
       throw new Error(`Failed to get trust score: ${error}`);
     }
   }
 
+  /**
+   * Get on-chain attestation data for a user
+   * @param userAddress User's TON address
+   * @returns Attestation data and jetton address
+   */
   async getUserAttestationData(userAddress: string): Promise<{
     jettonAddress: Address;
     attestationData: {
@@ -74,19 +131,30 @@ export class HapiSDK {
     }
   }
 
+  /**
+   * Track attestation result after transaction
+   * @param userAddress User's TON address
+   * @param trustScore Expected trust score
+   * @param timeInterval Polling interval in milliseconds
+   * @param maxRetries Maximum number of retry attempts
+   * @returns Status and attestation data
+   */
   async trackAttestationResult(
-    userFriendlyAddress: string,
+    userAddress: string,
     trustScore: number,
     timeInterval = 7000,
     maxRetries = 9
-  ) {
+  ): Promise<{
+    status: boolean | null;
+    data?: any;
+  }> {
     let attempt = 0;
     let status: boolean | null = null;
     let data;
 
     const userJettonAddress =
-      HapiTonAttestation.getStaticUserJettonAddress(userFriendlyAddress);
-    const jettonAddress = UserTonJetton.createFromAddress(
+      HapiTonAttestation.getStaticUserJettonAddress(userAddress);
+    const jettonContract = UserTonJetton.createFromAddress(
       userJettonAddress,
       this.contractAdapter
     );
@@ -94,14 +162,14 @@ export class HapiSDK {
     while (attempt < maxRetries) {
       try {
         await delay(timeInterval);
-        const localData = await jettonAddress.getAttestationData();
+        const localData = await jettonContract.getAttestationData();
 
         if (localData.trustScore >= trustScore) {
           status = true;
           data = localData;
           try {
             await axios.post(`${this.config.hapiEndpoint}/attestation/count`, {
-              address: userFriendlyAddress,
+              address: userAddress,
               refId: this.config.referralId,
             });
           } catch (error) {
@@ -113,7 +181,7 @@ export class HapiSDK {
         }
       } catch (error) {
         console.error(
-          `Error: while get jettonAddress=${jettonAddress} or getTrustScore\n\n`,
+          `Error while getting attestation data for jetton=${userJettonAddress}:`,
           error
         );
       }
@@ -124,18 +192,13 @@ export class HapiSDK {
     return { status, data };
   }
 
-  prepareCreateAttestation(opts: {
-    queryId: number;
-    trustScore: number;
-    expirationDate: number;
-    signature: Buffer;
-    value: bigint;
-    referralId?: bigint;
-  }) {
-    const hapiContract = HapiTonAttestation.createFromAddress(
-      this.config.contractAddress,
-      this.contractAdapter
-    );
+  /**
+   * Prepare create attestation transaction
+   * @param opts Attestation options
+   * @returns Transaction cell
+   */
+  prepareCreateAttestation(opts: AttestationOptions) {
+    const hapiContract = this.getHapiContract();
     return hapiContract.prepareCreateAttestation({
       queryId: opts.queryId,
       trustScore: opts.trustScore,
@@ -146,17 +209,13 @@ export class HapiSDK {
     });
   }
 
-  prepareUpdateAttestation(opts: {
-    queryId: number;
-    trustScore: number;
-    expirationDate: number;
-    signature: Buffer;
-    value: bigint;
-  }) {
-    const hapiContract = HapiTonAttestation.createFromAddress(
-      this.config.contractAddress,
-      this.contractAdapter
-    );
+  /**
+   * Prepare update attestation transaction
+   * @param opts Attestation options
+   * @returns Transaction cell
+   */
+  prepareUpdateAttestation(opts: AttestationOptions) {
+    const hapiContract = this.getHapiContract();
     return hapiContract.prepareUpdateAttestation({
       queryId: opts.queryId,
       trustScore: opts.trustScore,
@@ -166,23 +225,66 @@ export class HapiSDK {
     });
   }
 
-  prepareAttestation(
-    opts: {
-      queryId: number;
-      trustScore: number;
-      expirationDate: number;
-      signature: Buffer;
-      value: bigint;
-      referralId?: bigint;
-    },
-    isUpdate: boolean
-  ) {
-    if (isUpdate) {
-      return this.prepareUpdateAttestation(opts);
-    }
-    return this.prepareCreateAttestation(opts);
+  /**
+   * Prepare attestation transaction (create or update)
+   * @param opts Attestation options
+   * @param isUpdate Whether to update existing attestation
+   * @returns Transaction cell
+   */
+  prepareAttestation(opts: AttestationOptions, isUpdate: boolean) {
+    return isUpdate
+      ? this.prepareUpdateAttestation(opts)
+      : this.prepareCreateAttestation(opts);
   }
 
+  /**
+   * Send create attestation transaction
+   * @param provider Contract provider
+   * @param via Sender
+   * @param opts Attestation options
+   */
+  async sendCreateAttestation(
+    provider: ContractProvider,
+    via: Sender,
+    opts: AttestationOptions
+  ) {
+    const hapiContract = this.getHapiContract();
+    return hapiContract.sendCreateAttestation(provider, via, {
+      queryId: opts.queryId,
+      trustScore: opts.trustScore,
+      expirationDate: opts.expirationDate,
+      signature: opts.signature,
+      value: opts.value,
+      referralId: BigInt(this.config.referralId),
+    });
+  }
+
+  /**
+   * Send update attestation transaction
+   * @param provider Contract provider
+   * @param via Sender
+   * @param opts Attestation options
+   */
+  async sendUpdateAttestation(
+    provider: ContractProvider,
+    via: Sender,
+    opts: AttestationOptions
+  ) {
+    const hapiContract = this.getHapiContract();
+    return hapiContract.sendUpdateAttestation(provider, via, {
+      queryId: opts.queryId,
+      trustScore: opts.trustScore,
+      expirationDate: opts.expirationDate,
+      signature: opts.signature,
+      value: opts.value,
+    });
+  }
+
+  /**
+   * Calculate transaction fee
+   * @param isUpdate Whether to update existing attestation
+   * @returns Fee breakdown
+   */
   async calculateTransactionFee(isUpdate: boolean): Promise<{
     total: bigint;
     createFee: bigint;
@@ -209,13 +311,23 @@ export class HapiSDK {
     }
   }
 
+  /**
+   * Get attestation fee from contract
+   * @param isUpdate Whether to update existing attestation
+   * @returns Fee amount
+   */
   async getCreateAttestationFee(isUpdate: boolean): Promise<bigint> {
-    const hapiContract = HapiTonAttestation.createFromAddress(
-      this.config.contractAddress,
-      this.contractAdapter
-    );
+    const hapiContract = this.getHapiContract();
     return isUpdate
       ? hapiContract.getUpdateAttestationFee()
       : hapiContract.getCreateAttestationFee();
+  }
+
+  /**
+   * Get contract adapter instance
+   * @returns Contract adapter
+   */
+  getContractAdapter(): ContractAdapter {
+    return this.contractAdapter;
   }
 }
