@@ -1,8 +1,7 @@
 {
   "url": "http://localhost:3000",
-  "name": "HAPI SDK Example",
+  "name": "HAPI SDK React Example",
   "iconUrl": "https://raw.githubusercontent.com/Solniechniy/hapi-sdk/main/examples/logo.png",
   "termsOfUseUrl": "https://hapi.one/terms",
-  "privacyPolicyUrl": "https://hapi.one/privacy",
-  "version": "0.0.2"
+  "privacyPolicyUrl": "https://hapi.one/privacy"
 }

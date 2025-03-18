@@ -1,6 +1,6 @@
-# HAPI TON SDK React Example
+# HAPI TON SDK React TypeScript Example
 
-This is a React example application that demonstrates how to use the HAPI TON SDK in a React application with TON Connect integration.
+This is a React TypeScript example application that demonstrates how to use the HAPI TON SDK in a React application with TON Connect integration.
 
 ## Features
 
@@ -9,6 +9,7 @@ This is a React example application that demonstrates how to use the HAPI TON SD
 - 📝 Create and prepare attestations
 - 💸 Calculate transaction fees
 - 🔎 Retrieve on-chain attestation data
+- 🔧 Full TypeScript support with type definitions
 
 ## Getting Started
 
@@ -80,9 +81,10 @@ Enter a TON address (or use your connected wallet address) and click "Get Attest
 
 ## Project Structure
 
-- `src/hooks/useHapiSDK.js` - Custom hook that wraps the HAPI SDK for React
+- `src/hooks/useHapiSDK.ts` - Custom hook that wraps the HAPI SDK for React
 - `src/components/` - React components for the different SDK functions
-- `src/App.js` - Main application component
+- `src/App.tsx` - Main application component
+- `src/types/` - TypeScript type definitions
 
 ## Implementation Details
 
@@ -90,7 +92,7 @@ Enter a TON address (or use your connected wallet address) and click "Get Attest
 
 The `useHapiSDK` hook provides a convenient way to use the HAPI SDK in React:
 
-```javascript
+```typescript
 const {
   sdk, // The SDK instance
   loading, // Loading state
@@ -110,12 +112,34 @@ const {
 });
 ```
 
+### TypeScript Type Definitions
+
+The example includes comprehensive TypeScript type definitions for the HAPI SDK:
+
+```typescript
+interface AttestationOptions {
+  queryId: number;
+  trustScore: number;
+  expirationDate: number;
+  signature: Uint8Array;
+  value: string;
+}
+
+interface FeeData {
+  createFee: string;
+  gasFee: string;
+  commission: string;
+  storage: string;
+  total: string;
+}
+```
+
 ### TON Connect Integration
 
 The example uses `@tonconnect/ui-react` for wallet connection:
 
-```javascript
-function App() {
+```typescript
+function App(): React.ReactElement {
   return (
     <TonConnectUIProvider manifestUrl={manifestUrl}>
       <AppContent />

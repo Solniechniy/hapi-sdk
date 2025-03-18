@@ -10,6 +10,7 @@ A TypeScript SDK for managing address attestations on the TON blockchain. This S
 - ⚡ Optimized for TON Connect integration
 - 📱 Simple interface for retrieving on-chain data
 - 💸 Accurate fee calculation
+- 📘 Full TypeScript support with type definitions
 
 ## Installation
 
@@ -58,6 +59,72 @@ if (wallet) {
 }
 ```
 
+## TypeScript Support
+
+The SDK comes with full TypeScript support including comprehensive type definitions for all features.
+
+### Types for SDK Configuration
+
+```typescript
+// SDK initialization with full type checking
+const sdk = new HapiSDK({
+  referralId: 123,
+  publicClient: "https://tonapi.io/v2",
+  tonApiKey: "your-api-key",
+  endpoint: "https://api.hapi.one",
+  contractAddress: "EQAvUDmCAM9Zl_i3rXeYA2n-s_uhM4rTBhzAQUeJIxEOB62i",
+});
+```
+
+### Authentication Hook with TypeScript
+
+```typescript
+import { useBackendAuth } from "hapi-ton-sdk";
+
+function AuthComponent() {
+  const { isAuthenticated, token, authenticate, logout, loading, error } =
+    useBackendAuth({
+      storageKey: "custom-token-key", // Optional
+      authEndpoint: "https://custom-auth.example.com", // Optional
+      onAuthStateChange: (isAuth) => console.log(`Auth state: ${isAuth}`), // Optional
+    });
+
+  return (
+    <div>
+      {!isAuthenticated ? (
+        <button onClick={authenticate} disabled={loading}>
+          Authenticate
+        </button>
+      ) : (
+        <button onClick={logout}>Logout</button>
+      )}
+      {error && <p>Error: {error}</p>}
+    </div>
+  );
+}
+```
+
+### Typed API Responses
+
+All API responses are fully typed, providing better developer experience with autocompletion and type checking:
+
+```typescript
+async function getTrustScoreInfo(jwt: string) {
+  try {
+    const response: TrustScoreResponse = await sdk.getTrustScore(jwt);
+
+    // TypeScript knows the shape of the response
+    console.log(`Address: ${response.result.address}`);
+    console.log(`Score: ${response.result.score}`);
+    console.log(`Signature: ${response.result.signature}`);
+
+    return response;
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+```
+
 ## Integration Flow
 
 ### 1. Setting Up TON Connect
@@ -90,8 +157,18 @@ Import the authentication hook from the SDK:
 import { useBackendAuth } from "@hapi/ton-sdk";
 
 function YourComponent() {
-  useBackendAuth(); // This will handle the authentication flow
-  const jwt = localStorage.getItem("hapi-app-auth-token");
+  const { isAuthenticated, token } = useBackendAuth(); // This will handle the authentication flow
+
+  // Use the token for API calls
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      // Now you can use the token for SDK calls
+      sdk.getTrustScore(token).then((score) => {
+        console.log("Trust score:", score);
+      });
+    }
+  }, [isAuthenticated, token]);
+
   // ... rest of your component
 }
 ```
@@ -231,6 +308,7 @@ const testnetSdk = new HapiSDK({
 2. **Transaction Values**: Ensure sufficient TON balance for transaction fees.
 3. **JWT Management**: Securely store and manage JWT tokens.
 4. **Polling Intervals**: The SDK implements automatic polling with reasonable intervals.
+5. **TypeScript Usage**: Leverage TypeScript's type system for safer code.
 
 ## Support
 
