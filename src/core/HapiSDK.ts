@@ -1,5 +1,4 @@
 import { Address } from "@ton/core";
-import axios from "axios";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { SDKConfig, TrustScoreResponse } from "../types";
@@ -49,15 +48,12 @@ export class HapiSDK {
 
   async getTrustScore(jwt: string): Promise<TrustScoreResponse> {
     try {
-      const response = await axios.get(
-        `${this.config.hapiEndpoint}/trust-score`,
-        {
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
-        }
-      );
-      return response.data;
+      const response = await fetch(`${this.config.hapiEndpoint}/trust-score`, {
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
+      });
+      return await response.json();
     } catch (error) {
       throw new Error(`Failed to get trust score: ${error}`);
     }
@@ -116,9 +112,15 @@ export class HapiSDK {
           status = true;
           data = localData;
           try {
-            await axios.post(`${this.config.hapiEndpoint}/attestation/count`, {
-              address: userAddress,
-              refId: this.config.referralId,
+            await fetch(`${this.config.hapiEndpoint}/attestation/count`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                address: userAddress,
+                refId: this.config.referralId,
+              }),
             });
           } catch (error) {
             console.error("Error updating attestation count:", error);

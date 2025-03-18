@@ -39,7 +39,7 @@ export const useHapiSDK = ({
   const userAddress = useTonAddress();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SDKResult>(null);
+  const [result, setResult] = useState<TrustScoreResponse | null>(null);
 
   // Initialize the SDK
   useEffect(() => {
@@ -58,9 +58,7 @@ export const useHapiSDK = ({
   }, [referralId, endpoint, contractAddress]);
 
   // Get trust score with JWT
-  const getTrustScore = async (
-    jwt: string
-  ): Promise<TrustScoreResponse | null> => {
+  const getTrustScore = async (jwt: string) => {
     if (!sdk) {
       setError("SDK not initialized");
       return null;
@@ -71,8 +69,7 @@ export const useHapiSDK = ({
 
     try {
       const trustScoreResponse = await sdk.getTrustScore(jwt);
-      setResult(trustScoreResponse);
-      return trustScoreResponse;
+      console.log(trustScoreResponse);
     } catch (error: any) {
       console.error("Error getting trust score:", error);
       setError("Error getting trust score: " + error.message);
