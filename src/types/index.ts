@@ -14,18 +14,6 @@ export interface AttestationParams {
   ref_id: number;
 }
 
-/**
- * Common options for attestation operations
- */
-export interface AttestationOptions {
-  queryId: number;
-  trustScore: number;
-  expirationDate: number;
-  signature: Buffer;
-  value: bigint;
-  referralId?: bigint;
-}
-
 export interface CreateAttestationOptions {
   queryId: number;
   trustScore: number;
@@ -48,7 +36,6 @@ export interface SDKConfig {
   contractAddress: string;
   nodeUrl: string;
   referralId: number;
-  tonApiKey?: string;
 }
 
 export interface AttestationChangeEvent {

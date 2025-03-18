@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import HapiSDK from "hapi-ton-sdk";
+import { HapiSDK } from "hapi-ton-sdk";
 import { useTonConnectUI, useTonAddress } from "@tonconnect/ui-react";
 import {
   SDKConfig,
@@ -11,7 +11,7 @@ import {
 } from "../types";
 
 interface HapiSDKHookReturn {
-  sdk: HapiSDK.HapiSDK | null;
+  sdk: HapiSDK | null;
   loading: boolean;
   error: string | null;
   result: SDKResult;
