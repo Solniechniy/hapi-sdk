@@ -1,235 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HAPI TON SDK Test Page</title>
     <!-- Load dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js"></script>
     <script>
-        // Make Buffer available globally
-        window.Buffer = buffer.Buffer;
+      // Make Buffer available globally
+      window.Buffer = buffer.Buffer;
     </script>
     <!-- Load TON dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@ton/core@0.60.0/dist/ton-core.min.js"></script>
     <script>
-        // Make ton-core available globally
-        window.ton = ton;
+      // Make ton-core available globally
+      window.ton = ton;
     </script>
     <!-- Load our SDK -->
     <script src="/sdk/hapi-sdk.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>HAPI TON SDK Test Interface</h1>
 
     <div class="section">
-        <h2>SDK Configuration</h2>
-        <div class="form-group">
-            <label for="endpoint">API Endpoint:</label>
-            <input type="text" id="endpoint" value="https://your-api-endpoint.com">
-        </div>
-        <div class="form-group">
-            <label for="contractAddress">Contract Address:</label>
-            <input type="text" id="contractAddress" value="EQAvUDmCAM9Zl_i3rXeYA2n-s_uhM4rTBhzAQUeJIxEOB62i">
-        </div>
-        <div class="form-group">
-            <label for="tonApiKey">TON API Key:</label>
-            <input type="text" id="tonApiKey" value="<YOUR_TON_API_KEY>">
-        </div>
-        <div class="form-group">
-            <label for="nodeUrl">Node URL:</label>
-            <input type="text" id="nodeUrl" value="https://tonapi.io">
-        </div>
-        <button onclick="initializeSDK()">Initialize SDK</button>
+      <h2>SDK Configuration</h2>
+      <div class="form-group">
+        <label for="endpoint">API Endpoint:</label>
+        <input
+          type="text"
+          id="endpoint"
+          value="https://your-api-endpoint.com"
+        />
+      </div>
+      <div class="form-group">
+        <label for="contractAddress">Contract Address:</label>
+        <input
+          type="text"
+          id="contractAddress"
+          value="EQAvUDmCAM9Zl_i3rXeYA2n-s_uhM4rTBhzAQUeJIxEOB62i"
+        />
+      </div>
+      <div class="form-group">
+        <label for="tonApiKey">TON API Key:</label>
+        <input type="text" id="tonApiKey" value="<YOUR_TON_API_KEY>" />
+      </div>
+      <div class="form-group">
+        <label for="nodeUrl">Node URL:</label>
+        <input type="text" id="nodeUrl" value="https://tonapi.io" />
+      </div>
+      <button onclick="initializeSDK()">Initialize SDK</button>
     </div>
 
     <div class="section">
-        <h2>Get Trust Score</h2>
-        <div class="form-group">
-            <label for="jwt">JWT Token:</label>
-            <input type="text" id="jwt">
-        </div>
-        <button onclick="getTrustScore()">Get Trust Score</button>
+      <h2>Get Trust Score</h2>
+      <div class="form-group">
+        <label for="jwt">JWT Token:</label>
+        <input type="text" id="jwt" />
+      </div>
+      <button onclick="getTrustScore()">Get Trust Score</button>
     </div>
 
     <div class="section">
-        <h2>Create Attestation</h2>
-        <div class="form-group">
-            <label for="trustScore">Trust Score:</label>
-            <input type="number" id="trustScore" value="85">
-        </div>
-        <div class="form-group">
-            <label for="expirationDate">Expiration (hours from now):</label>
-            <input type="number" id="expirationDate" value="1">
-        </div>
-        <div class="form-group">
-            <label for="value">Value (in TON):</label>
-            <input type="number" id="value" value="1">
-        </div>
-        <button onclick="createAttestation()">Create Attestation</button>
+      <h2>Create Attestation</h2>
+      <div class="form-group">
+        <label for="trustScore">Trust Score:</label>
+        <input type="number" id="trustScore" value="85" />
+      </div>
+      <div class="form-group">
+        <label for="expirationDate">Expiration (hours from now):</label>
+        <input type="number" id="expirationDate" value="1" />
+      </div>
+      <div class="form-group">
+        <label for="value">Value (in TON):</label>
+        <input type="number" id="value" value="1" />
+      </div>
+      <button onclick="createAttestation()">Create Attestation</button>
     </div>
 
     <div class="section">
-        <h2>Get Attestation by Address</h2>
-        <div class="form-group">
-            <label for="address">Address:</label>
-            <input type="text" id="address">
-        </div>
-        <button onclick="getAttestationByAddress()">Get Attestation</button>
+      <h2>Get Attestation by Address</h2>
+      <div class="form-group">
+        <label for="address">Address:</label>
+        <input type="text" id="address" />
+      </div>
+      <button onclick="getAttestationByAddress()">Get Attestation</button>
     </div>
 
     <div class="section">
-        <h2>Get User Attestation Data (On-chain)</h2>
-        <div class="form-group">
-            <label for="userAddress">User Address:</label>
-            <input type="text" id="userAddress" placeholder="Enter TON address">
-        </div>
-        <button onclick="getUserAttestationData()">Get User Attestation Data</button>
+      <h2>Get User Attestation Data (On-chain)</h2>
+      <div class="form-group">
+        <label for="userAddress">User Address:</label>
+        <input type="text" id="userAddress" placeholder="Enter TON address" />
+      </div>
+      <button onclick="getUserAttestationData()">
+        Get User Attestation Data
+      </button>
     </div>
 
     <div id="result">
-        <h3>Result:</h3>
-        <pre id="resultContent"></pre>
+      <h3>Result:</h3>
+      <pre id="resultContent"></pre>
     </div>
 
     <script>
-        let sdk;
+      let sdk;
 
-        async function initializeSDK() {
-            try {
-                const config = {
-                    endpoint: document.getElementById('endpoint').value,
-                    contractAddress: document.getElementById('contractAddress').value,
-                    tonApiKey: document.getElementById('tonApiKey').value,
-                    nodeUrl: document.getElementById('nodeUrl').value
-                };
-                console.log('Initializing SDK with config:', config);
-                sdk = new window.HapiSDK(config);
-                console.log('SDK initialized successfully');
-                showResult('SDK initialized successfully');
-            } catch (error) {
-                showResult('Error initializing SDK: ' + error.message);
-            }
+      async function initializeSDK() {
+        try {
+          const config = {
+            endpoint: document.getElementById("endpoint").value,
+            contractAddress: document.getElementById("contractAddress").value,
+            tonApiKey: document.getElementById("tonApiKey").value,
+            nodeUrl: document.getElementById("nodeUrl").value,
+          };
+          console.log("Initializing SDK with config:", config);
+          sdk = new window.HapiSDK(config);
+          console.log("SDK initialized successfully");
+          showResult("SDK initialized successfully");
+        } catch (error) {
+          showResult("Error initializing SDK: " + error.message);
         }
+      }
 
-        async function getUserAttestationData() {
-            try {
-                if (!sdk) {
-                    throw new Error('SDK not initialized. Please initialize SDK first.');
-                }
+      async function getUserAttestationData() {
+        try {
+          if (!sdk) {
+            throw new Error(
+              "SDK not initialized. Please initialize SDK first."
+            );
+          }
 
-                const userAddress = document.getElementById('userAddress').value;
-                if (!userAddress) {
-                    throw new Error('Please enter a user address');
-                }
+          const userAddress = document.getElementById("userAddress").value;
+          if (!userAddress) {
+            throw new Error("Please enter a user address");
+          }
 
-                const result = await sdk.getUserAttestationData(userAddress);
-                showResult({
-                    jettonAddress: result.jettonAddress.toString(),
-                    attestationData: {
-                        userCount: result.attestationData.userCount.toString(),
-                        contractOwner: result.attestationData.contractOwner.toString(),
-                        commissionOwner: result.attestationData.commissionOwner.toString(),
-                        createAttestatioFee: result.attestationData.createAttestatioFee.toString(),
-                        updateAttestatioFee: result.attestationData.updateAttestatioFee.toString(),
-                        walletCode: 'Cell object' // Converting Cell to string might not be useful
-                    }
-                });
-            } catch (error) {
-                showResult('Error getting user attestation data: ' + error.message);
-            }
+          const result = await sdk.getUserAttestationData(userAddress);
+          showResult({
+            jettonAddress: result.jettonAddress.toString(),
+            attestationData: {
+              userCount: result.attestationData.userCount.toString(),
+              contractOwner: result.attestationData.contractOwner.toString(),
+              commissionOwner:
+                result.attestationData.commissionOwner.toString(),
+              createAttestatioFee:
+                result.attestationData.createAttestatioFee.toString(),
+              updateAttestatioFee:
+                result.attestationData.updateAttestatioFee.toString(),
+              walletCode: "Cell object",
+            },
+          });
+        } catch (error) {
+          showResult("Error getting user attestation data: " + error.message);
         }
+      }
 
-        async function getTrustScore() {
-            try {
-                const jwt = document.getElementById('jwt').value;
-                const result = await sdk.getTrustScore(jwt);
-                showResult(result);
-            } catch (error) {
-                showResult('Error getting trust score: ' + error.message);
-            }
+      async function getTrustScore() {
+        try {
+          const jwt = document.getElementById("jwt").value;
+          const result = await sdk.getTrustScore(jwt);
+          showResult(result);
+        } catch (error) {
+          showResult("Error getting trust score: " + error.message);
         }
+      }
 
-        async function createAttestation() {
-            try {
-                const trustScore = parseInt(document.getElementById('trustScore').value);
-                const expirationHours = parseInt(document.getElementById('expirationDate').value);
-                const value = parseFloat(document.getElementById('value').value);
+      async function createAttestation() {
+        try {
+          const trustScore = parseInt(
+            document.getElementById("trustScore").value
+          );
+          const expirationHours = parseInt(
+            document.getElementById("expirationDate").value
+          );
+          const value = parseFloat(document.getElementById("value").value);
+          const fee = await sdk.getCreateAttestationFee(false);
 
-                const opts = {
-                    queryId: Date.now(),
-                    trustScore: trustScore,
-                    expirationDate: Math.floor(Date.now() / 1000) + (expirationHours * 3600),
-                    signature: Buffer.from('test-signature'),
-                    value: BigInt(value * 1000000000)
-                };
+          const opts = {
+            queryId: Date.now(),
+            trustScore: trustScore,
+            expirationDate:
+              Math.floor(Date.now() / 1000) + expirationHours * 3600,
+            signature: Buffer.from("test-signature"),
+            value: fee,
+          };
 
-                const cell = sdk.prepareCreateAttestation(opts);
-                showResult('Transaction prepared: ' + cell.toString());
-            } catch (error) {
-                showResult('Error creating attestation: ' + error.message);
-            }
+          const cell = sdk.prepareCreateAttestation(opts);
+          showResult("Transaction prepared: " + cell.toString());
+        } catch (error) {
+          showResult("Error creating attestation: " + error.message);
         }
+      }
 
-        async function getAttestationByAddress() {
-            try {
-                const address = document.getElementById('address').value;
-                const result = await sdk.getAttestationByAddress(address);
-                showResult(result);
-            } catch (error) {
-                showResult('Error getting attestation: ' + error.message);
-            }
+      async function getAttestationByAddress() {
+        try {
+          const address = document.getElementById("address").value;
+          const result = await sdk.getAttestationByAddress(address);
+          showResult(result);
+        } catch (error) {
+          showResult("Error getting attestation: " + error.message);
         }
+      }
 
-        function showResult(result) {
-            const resultElement = document.getElementById('resultContent');
-            resultElement.textContent = typeof result === 'object' ? 
-                JSON.stringify(result, null, 2) : result.toString();
-        }
+      function showResult(result) {
+        const resultElement = document.getElementById("resultContent");
+        resultElement.textContent =
+          typeof result === "object"
+            ? JSON.stringify(result, null, 2)
+            : result.toString();
+      }
     </script>
-</body>
-</html> 
+  </body>
+</html>
