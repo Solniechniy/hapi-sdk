@@ -4,12 +4,16 @@
   "description": "SDK for managing HAPI attestations on TON network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && webpack --mode production",
     "test": "jest",
     "lint": "eslint src --ext .ts",
     "prepare": "npm run build",
-    "start:test": "node examples/server.js"
+    "start:example": "node examples/server.js",
+    "dev": "webpack --mode development --watch"
   },
   "dependencies": {
     "@ton-api/client": "^0.3.1",
@@ -17,19 +21,23 @@
     "@ton/core": "^0.60.0",
     "@ton/crypto": "^3.2.0",
     "@ton/ton": "^13.9.0",
-    "@tonconnect/ui-react": "^2.0.0",
-    "@types/react": "^19.0.10",
     "axios": "^1.6.7",
-    "buffer": "^6.0.3",
-    "express": "^4.18.2",
-    "react": "^19.0.0",
-    "react-scripts": "^5.0.1"
+    "buffer": "^6.0.3"
+  },
+  "peerDependencies": {
+    "@tonconnect/ui-react": "^2.0.0",
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@tonconnect/ui-react": "^2.0.0",
     "@types/node": "^20.11.19",
+    "@types/react": "^19.0.10",
     "@typescript-eslint/eslint-plugin": "^7.0.1",
     "@typescript-eslint/parser": "^7.0.1",
     "eslint": "^8.56.0",
+    "express": "^4.18.2",
+    "react": "^19.0.0",
+    "react-scripts": "^5.0.1",
     "ts-loader": "^9.5.1",
     "typescript": "^5.3.3",
     "webpack": "^5.90.3",
@@ -42,5 +50,13 @@
     "sdk"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Solniechniy/hapi-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Solniechniy/hapi-sdk/issues"
+  },
+  "homepage": "https://github.com/Solniechniy/hapi-sdk#readme"
 }

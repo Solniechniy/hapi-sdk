@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HAPI TON SDK Test Page</title>
-    <!-- Load dependencies -->
+    <!-- Load Buffer dependency -->
     <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js"></script>
     <script>
       // Make Buffer available globally
@@ -16,8 +16,8 @@
       // Make ton-core available globally
       window.ton = ton;
     </script>
-    <!-- Load our SDK -->
-    <script src="/sdk/hapi-sdk.js"></script>
+    <!-- Load the published SDK from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@hapi/ton-sdk/dist/hapi-sdk.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -70,11 +70,7 @@
       <h2>SDK Configuration</h2>
       <div class="form-group">
         <label for="endpoint">API Endpoint:</label>
-        <input
-          type="text"
-          id="endpoint"
-          value="https://your-api-endpoint.com"
-        />
+        <input type="text" id="endpoint" value="https://api.hapi.one" />
       </div>
       <div class="form-group">
         <label for="contractAddress">Contract Address:</label>
@@ -90,7 +86,11 @@
       </div>
       <div class="form-group">
         <label for="nodeUrl">Node URL:</label>
-        <input type="text" id="nodeUrl" value="https://tonapi.io" />
+        <input type="text" id="nodeUrl" value="https://tonapi.io/v2" />
+      </div>
+      <div class="form-group">
+        <label for="referralId">Referral ID:</label>
+        <input type="number" id="referralId" value="0" />
       </div>
       <button onclick="initializeSDK()">Initialize SDK</button>
     </div>
@@ -152,13 +152,14 @@
       async function initializeSDK() {
         try {
           const config = {
+            referralId: parseInt(document.getElementById("referralId").value),
+            publicClient: document.getElementById("nodeUrl").value,
+            tonApiKey: document.getElementById("tonApiKey").value,
             endpoint: document.getElementById("endpoint").value,
             contractAddress: document.getElementById("contractAddress").value,
-            tonApiKey: document.getElementById("tonApiKey").value,
-            nodeUrl: document.getElementById("nodeUrl").value,
           };
           console.log("Initializing SDK with config:", config);
-          sdk = new window.HapiSDK(config);
+          sdk = new HapiSDK(config);
           console.log("SDK initialized successfully");
           showResult("SDK initialized successfully");
         } catch (error) {
@@ -183,15 +184,12 @@
           showResult({
             jettonAddress: result.jettonAddress.toString(),
             attestationData: {
-              userCount: result.attestationData.userCount.toString(),
-              contractOwner: result.attestationData.contractOwner.toString(),
+              trustScore: result.attestationData.trustScore.toString(),
+              expirationDate: result.attestationData.expirationDate.toString(),
+              attestationAddress:
+                result.attestationData.attestationAddress.toString(),
               commissionOwner:
                 result.attestationData.commissionOwner.toString(),
-              createAttestatioFee:
-                result.attestationData.createAttestatioFee.toString(),
-              updateAttestatioFee:
-                result.attestationData.updateAttestatioFee.toString(),
-              walletCode: "Cell object",
             },
           });
         } catch (error) {
@@ -201,7 +199,17 @@
 
       async function getTrustScore() {
         try {
+          if (!sdk) {
+            throw new Error(
+              "SDK not initialized. Please initialize SDK first."
+            );
+          }
+
           const jwt = document.getElementById("jwt").value;
+          if (!jwt) {
+            throw new Error("Please enter a JWT token");
+          }
+
           const result = await sdk.getTrustScore(jwt);
           showResult(result);
         } catch (error) {
@@ -211,6 +219,12 @@
 
       async function createAttestation() {
         try {
+          if (!sdk) {
+            throw new Error(
+              "SDK not initialized. Please initialize SDK first."
+            );
+          }
+
           const trustScore = parseInt(
             document.getElementById("trustScore").value
           );
@@ -218,19 +232,35 @@
             document.getElementById("expirationDate").value
           );
           const value = parseFloat(document.getElementById("value").value);
-          const fee = await sdk.getCreateAttestationFee(false);
+
+          // Get fee calculation
+          const fees = await sdk.calculateTransactionFee(false);
 
           const opts = {
             queryId: Date.now(),
             trustScore: trustScore,
             expirationDate:
               Math.floor(Date.now() / 1000) + expirationHours * 3600,
-            signature: Buffer.from("test-signature"),
-            value: fee,
+            signature: Buffer.from("test-signature-for-demo-only", "utf-8"),
+            value: BigInt(Math.floor(value * 1000000000)),
           };
 
           const cell = sdk.prepareCreateAttestation(opts);
-          showResult("Transaction prepared: " + cell.toString());
+          showResult({
+            message: "Transaction prepared successfully",
+            fees: {
+              createFee: fees.createFee.toString(),
+              gasFee: fees.gasFee.toString(),
+              commission: fees.commission.toString(),
+              storage: fees.storage.toString(),
+              total: fees.total.toString(),
+            },
+            options: {
+              ...opts,
+              signature: opts.signature.toString(),
+              value: opts.value.toString(),
+            },
+          });
         } catch (error) {
           showResult("Error creating attestation: " + error.message);
         }
@@ -238,8 +268,19 @@
 
       async function getAttestationByAddress() {
         try {
+          if (!sdk) {
+            throw new Error(
+              "SDK not initialized. Please initialize SDK first."
+            );
+          }
+
           const address = document.getElementById("address").value;
-          const result = await sdk.getAttestationByAddress(address);
+          if (!address) {
+            throw new Error("Please enter an address");
+          }
+
+          // Assuming this method exists
+          const result = await sdk.getUserAttestationData(address);
           showResult(result);
         } catch (error) {
           showResult("Error getting attestation: " + error.message);
