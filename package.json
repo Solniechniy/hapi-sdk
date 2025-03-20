@@ -1,6 +1,6 @@
 {
   "name": "hapi-ton-sdk",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "SDK for managing HAPI attestations on TON network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,12 +8,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && cp index.d.ts dist/ && webpack --mode production",
+    "build": "tsc && cp index.d.ts dist/",
     "test": "jest",
-    "lint": "eslint src --ext .ts",
-    "prepare": "npm run build",
-    "start:example": "node examples/server.js",
-    "dev": "webpack --mode development --watch"
+    "lint": "eslint src --ext .ts"
   },
   "dependencies": {
     "@ton-api/client": "^0.3.1",
@@ -41,9 +38,7 @@
     "react": "^19.0.0",
     "react-scripts": "^5.0.1",
     "ts-loader": "^9.5.1",
-    "typescript": "^5.3.3",
-    "webpack": "^5.90.3",
-    "webpack-cli": "^5.1.4"
+    "typescript": "^5.3.3"
   },
   "keywords": [
     "ton",
