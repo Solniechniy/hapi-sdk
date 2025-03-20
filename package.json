@@ -1,6 +1,6 @@
 {
   "name": "hapi-ton-sdk",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "description": "SDK for managing HAPI attestations on TON network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,6 +18,7 @@
     "@ton-api/client": "^0.3.1",
     "@ton-api/ton-adapter": "^0.3.1",
     "@ton/core": "^0.60.0",
+    "@ton/crypto": "^3.3.0",
     "axios": "^1.8.4",
     "buffer": "^6.0.3"
   },
