@@ -1,6 +1,6 @@
 {
   "name": "hapi-ton-sdk",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "SDK for managing HAPI attestations on TON network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,8 @@
     "@ton/core": "^0.60.0",
     "@ton/crypto": "^3.2.0",
     "@ton/ton": "^13.9.0",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "whatwg-fetch": "^3.6.20"
   },
   "peerDependencies": {
     "@tonconnect/ui-react": "^2.0.0",
