@@ -1,10 +1,26 @@
-export interface TrustScoreResponse {
+export interface UserResponse {
+  errorCode: number;
+  scores: [
+    {
+      address: string;
+      expirationDate: number | null;
+      isMinted: boolean;
+      network: string;
+      score: number | null;
+    }
+  ];
+}
+
+export interface TrustResponseData {
   errorCode: number;
   wallet: string;
-  signature: string;
   trust: number;
   expiration: number;
-  isMinted: boolean;
+  signature: string;
+  validation?: string;
+  attestationId?: string | null;
+  recovery_id?: string;
+  isRemint?: boolean;
 }
 
 export interface AttestationParams {

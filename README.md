@@ -380,3 +380,7 @@ const jwt = localStorage.getItem("hapi-app-auth-token");
 // Remove token (logout)
 localStorage.removeItem("hapi-app-auth-token");
 ```
+
+Errors:
+
+Error: Unknown error occurred - check your ton api url + token;

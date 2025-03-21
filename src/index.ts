@@ -1,4 +1,5 @@
 export * from "./types";
-import { HapiSDK } from "./core/HapiSDK";
-export default HapiSDK;
-export { useBackendAuth } from "./hooks/useBackendAuth";
+export * from "./core/HapiSDK";
+export * from "./contracts/HapiAttestation";
+export * from "./contracts/UserJetton";
+export * from "./config";

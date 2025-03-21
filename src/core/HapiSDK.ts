@@ -1,7 +1,7 @@
 import { Address } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
-import { SDKConfig, TrustScoreResponse } from "../types";
+import { SDKConfig, TrustResponseData, UserResponse } from "../types";
 import { HapiTonAttestation } from "../contracts/HapiAttestation";
 import { UserTonJetton } from "../contracts/UserJetton";
 import {
@@ -10,7 +10,8 @@ import {
   TON_MIN_COMMISSION,
   TON_MIN_JETTON_STORAGE,
 } from "../utils";
-import { config } from "../../config";
+import { config } from "../config";
+import axios from "axios";
 
 export class HapiSDK {
   private config: SDKConfig;
@@ -19,18 +20,20 @@ export class HapiSDK {
 
   constructor(args: {
     referralId: number;
-    publicClient?: string | TonApiClient;
+    staging?: boolean;
+    publicClient?: TonApiClient;
+    testnet?: boolean;
     tonApiKey?: string;
   }) {
     this.config = {
-      hapiEndpoint: config.apiStaging,
+      hapiEndpoint: args.staging ? config.apiStaging : config.apiProduction,
       contractAddress: config.ton.score,
-      nodeUrl: config.ton.nodeUrl,
+      nodeUrl: args.testnet ? config.ton.testnetNodeUrl : config.ton.nodeUrl,
       referralId: args.referralId,
     };
-    if (typeof args.publicClient === "string") {
+    if (typeof args.tonApiKey === "string") {
       this.publicClient = new TonApiClient({
-        baseUrl: args.publicClient,
+        baseUrl: this.config.nodeUrl,
         baseApiParams: {
           headers: {
             Authorization: `Bearer ${args.tonApiKey}`,
@@ -46,17 +49,77 @@ export class HapiSDK {
     this.contractAdapter = new ContractAdapter(this.publicClient);
   }
 
-  async getTrustScore(jwt: string): Promise<TrustScoreResponse> {
+  async getUser(jwt: string): Promise<UserResponse> {
     try {
-      const response = await fetch(`${this.config.hapiEndpoint}/trust-score`, {
-        headers: {
-          Authorization: `Bearer ${jwt}`,
+      const response = await axios.get(
+        `${this.config.hapiEndpoint}/ref/v2/get-user`,
+        {
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get user: ${error}`);
+    }
+  }
+
+  async getTrustScore(
+    address: string,
+    network: number,
+    jwt: string
+  ): Promise<TrustResponseData> {
+    try {
+      const response = await axios.post(
+        `${this.config.hapiEndpoint}/ref/v2/score`,
+        {
+          address,
+          network,
         },
-      });
-      return await response.json();
+        {
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+          },
+        }
+      );
+      return response.data;
     } catch (error) {
       throw new Error(`Failed to get trust score: ${error}`);
     }
+  }
+
+  async getMessage() {
+    try {
+      const response = await axios.get(
+        `${this.config.hapiEndpoint}/ref/v2/ton-payload`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get ton payload: ${error}`);
+    }
+  }
+
+  async checkProof({
+    proof,
+    address,
+    network,
+  }: {
+    proof: {
+      state_init: string;
+      timestamp: number;
+      domain: { lengthBytes: number; value: string };
+      payload: string;
+      signature: string;
+    };
+    address: string;
+    network: number;
+  }) {
+    return axios.post(`${this.config.hapiEndpoint}/ref/v2/ton-login`, {
+      proof,
+      address,
+      network,
+    });
   }
 
   async getUserAttestationOnchain(userAddress: string): Promise<{
@@ -112,16 +175,18 @@ export class HapiSDK {
           status = true;
           data = localData;
           try {
-            await fetch(`${this.config.hapiEndpoint}/attestation/count`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
+            await axios.post(
+              `${this.config.hapiEndpoint}/attestation/count`,
+              {
                 address: userAddress,
                 refId: this.config.referralId,
-              }),
-            });
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
           } catch (error) {
             console.error("Error updating attestation count:", error);
           }
@@ -211,6 +276,7 @@ export class HapiSDK {
 
   async calculateTransactionFee(isUpdate: boolean): Promise<bigint> {
     try {
+      console.log(this.config);
       const hapiContract = HapiTonAttestation.createFromAddress(
         this.config.contractAddress,
         this.contractAdapter

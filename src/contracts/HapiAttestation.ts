@@ -10,7 +10,7 @@ import {
   address as toAddress,
 } from "@ton/core";
 
-import { config } from "../../config";
+import { config } from "../config";
 
 import { OpCode } from "../types";
 
