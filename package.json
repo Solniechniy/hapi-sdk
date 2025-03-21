@@ -1,6 +1,6 @@
 {
   "name": "hapi-ton-sdk",
-  "version": "0.0.44",
+  "version": "0.0.45",
   "description": "SDK for managing HAPI attestations on TON network",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
