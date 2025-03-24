@@ -58,7 +58,7 @@ export class HapiTonAttestation implements Contract {
     };
   }
 
-  async getUserJettonAddress(
+  static async getUserJettonAddress(
     provider: ContractProvider,
     address: string
   ): Promise<Address> {
@@ -104,6 +104,7 @@ export class HapiTonAttestation implements Contract {
 
     return new Address(0, jettonWalletStateInit.hash());
   }
+
   prepareCreateAttestation(opts: {
     queryId: number;
     trustScore: number;
@@ -118,7 +119,7 @@ export class HapiTonAttestation implements Contract {
       body: beginCell()
         .storeUint(OpCode.createAttestation, 32)
         .storeUint(opts.queryId, 64)
-        .storeUint(opts.referralId ?? 0, 64)
+        .storeUint(opts.referralId ?? 0n, 64)
         .storeUint(opts.trustScore, 8)
         .storeUint(opts.expirationDate, 64)
         .storeBuffer(opts.signature)
@@ -147,6 +148,7 @@ export class HapiTonAttestation implements Contract {
     expirationDate: number;
     signature: Buffer;
     value: bigint;
+    referralId?: bigint;
   }) {
     return {
       value: opts.value,
@@ -154,6 +156,7 @@ export class HapiTonAttestation implements Contract {
       body: beginCell()
         .storeUint(OpCode.updateAttestation, 32)
         .storeUint(opts.queryId, 64)
+        .storeUint(opts.referralId ?? 0n, 64)
         .storeUint(opts.trustScore, 8)
         .storeUint(opts.expirationDate, 64)
         .storeBuffer(opts.signature)

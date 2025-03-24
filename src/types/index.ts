@@ -1,3 +1,5 @@
+import { crc32 } from "../utils/crc32";
+
 export interface UserResponse {
   errorCode: number;
   scores: [
@@ -14,7 +16,7 @@ export interface UserResponse {
 export interface TrustResponseData {
   errorCode: number;
   wallet: string;
-  trust: number;
+  score: number;
   expiration: number;
   signature: string;
   validation?: string;
@@ -60,6 +62,6 @@ export interface AttestationChangeEvent {
 }
 
 export const OpCode = {
-  createAttestation: 0x8c839e3e, // CRC32 of 'create_attestation'
-  updateAttestation: 0x96f9f442, // CRC32 of 'update_attestation'
+  createAttestation: crc32("create_attestation"),
+  updateAttestation: crc32("update_attestation"),
 } as const;

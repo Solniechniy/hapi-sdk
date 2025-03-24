@@ -4,7 +4,10 @@ interface Config {
   ton: Readonly<{
     score: string;
     nodeUrl: string;
-    testnetNodeUrl: string;
+  }>;
+  tonTestnet: Readonly<{
+    score: string;
+    nodeUrl: string;
   }>;
 }
 
@@ -12,8 +15,11 @@ export const config: Readonly<Config> = {
   apiStaging: "https://hapi-one.stage.hapi.farm",
   apiProduction: "https://score-be.hapi.mobi",
   ton: {
-    score: "EQBiXrm6sM4V2SxDPDDuEr-qALlRl-utFx0g2gzaGIcS827a",
+    score: "kQC60vGFCtYeQi-S0p6Lhfghd0vYS1YcTiHDWhEmuQ39QpCh",
     nodeUrl: "https://tonapi.io",
-    testnetNodeUrl: "https://testnet.tonapi.io",
+  },
+  tonTestnet: {
+    score: "kQC60vGFCtYeQi-S0p6Lhfghd0vYS1YcTiHDWhEmuQ39QpCh",
+    nodeUrl: "https://testnet.tonapi.io",
   },
 };
