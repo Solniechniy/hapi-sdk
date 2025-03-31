@@ -3,20 +3,18 @@
 ## Installation
 
 ```bash
-npm install @hapi/ton-sdk
+npm install hapi-ton-sdk
 ```
 
 ## Basic Setup
 
 ```typescript
-import { HapiSDK } from "@hapi/ton-sdk";
+import { HapiSDK } from "hapi-ton-sdk";
 
 const sdk = new HapiSDK({
-  endpoint: "https://api.hapi.one", // HAPI API endpoint
-  contractAddress: "EQAvUDmC...", // HAPI TON contract address
-  tonApiKey: "<YOUR_TON_API_KEY>", // TON API key for blockchain interactions
-  nodeUrl: "https://tonapi.io", // TON node URL
-  referralId: "0", // Optional referral ID
+  referralId: 0, // Optional referral ID
+  staging: false, // Use staging environment
+  testnet: true, // Use testnet (true) or mainnet (false)
 });
 ```
 
@@ -44,140 +42,49 @@ export function App() {
 }
 ```
 
-### 2. Obtaining JWT Token
+### 2. Authentication Hook
 
 Create a hook to handle authentication and JWT token retrieval:
 
 ```tsx
-import {
-  useIsConnectionRestored,
-  useTonAddress,
-  useTonConnectUI,
-  useTonWallet,
-} from "@tonconnect/ui-react";
-import { useEffect, useRef } from "react";
-
-const localStorageKey = "hapi-app-auth-token";
-const payloadTTLMS = 1000 * 60 * 20; // 20 minutes
-
-export function useBackendAuth() {
-  const isConnectionRestored = useIsConnectionRestored();
-  const wallet = useTonWallet();
-  const address = useTonAddress();
-  const [tonConnectUI] = useTonConnectUI();
-  const interval = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!isConnectionRestored) return;
-
-    if (interval.current) {
-      clearInterval(interval.current);
-    }
-
-    if (!wallet) {
-      localStorage.removeItem(localStorageKey);
-
-      // Get TON Proof payload from HAPI backend
-      const refreshPayload = async () => {
-        tonConnectUI.setConnectRequestParameters({ state: "loading" });
-        const response = await fetch(
-          "https://hapi-one.stage.hapi.farm/ref/v2/ton-payload",
-          {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        const data = await response.json();
-        const value = { tonProof: data.payload };
-
-        tonConnectUI.setConnectRequestParameters(
-          value ? { state: "ready", value } : null
-        );
-      };
-
-      refreshPayload();
-      interval.current = setInterval(refreshPayload, payloadTTLMS);
-      return;
-    }
-
-    // Check existing token
-    const token = localStorage.getItem(localStorageKey);
-    if (token) {
-      try {
-        const parsedToken = JSON.parse(atob(token.split(".")[1]));
-        if (parsedToken.iat < Date.now() / 1000) {
-          tonConnectUI.disconnect();
-          return;
-        }
-        return;
-      } catch (e) {
-        return;
-      }
-    }
-
-    // Get new JWT token
-    if (
-      wallet.connectItems?.tonProof &&
-      !("error" in wallet.connectItems.tonProof)
-    ) {
-      try {
-        fetch("https://hapi-one.stage.hapi.farm/ref/v2/ton-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            proof: {
-              ...wallet.connectItems.tonProof.proof,
-              state_init: wallet.account.walletStateInit,
-            },
-            address: wallet.account.address,
-            network: -239, // -239 for mainnet, -3 for testnet
-          }),
-        }).then(async (result) => {
-          if (result) {
-            const data = await result.json();
-            localStorage.setItem(localStorageKey, data.jwt);
-          } else {
-            tonConnectUI.disconnect();
-          }
-        });
-      } catch (e) {
-        console.warn(e, "error with backend Auth");
-      }
-    } else {
-      tonConnectUI.disconnect();
-    }
-  }, [wallet, tonConnectUI, isConnectionRestored, address]);
-}
-```
-
-Use this hook in your component:
-
-```tsx
-import { useBackendAuth } from "hapi-sdk";
+import { useBackendAuth } from "./hooks/useBackAuth";
 
 function YourComponent() {
-  useBackendAuth(); // This will handle the authentication flow
-  const jwt = localStorage.getItem("hapi-app-auth-token");
+  const [jwt, setJwt] = useState<string | null>(
+    localStorage.getItem("hapi-app-auth-token")
+  );
+
+  useBackendAuth(sdk, setJwt); // This will handle the authentication flow
+
   // ... rest of your component
 }
 ```
+
+The authentication hook will:
+
+- Handle wallet connection/disconnection
+- Manage JWT token storage and refresh
+- Handle TON Connect proof verification
+- Automatically refresh the connection payload every 20 minutes
 
 ### 3. Get Trust Score Information
 
 Once you have the JWT token, you can get the trust score:
 
 ```typescript
-import { sdk } from "hapi-sdk";
-
 try {
-  const trustScoreResponse = await sdk.getTrustScore(jwt);
+  const trustScoreResponse = await sdk.getTrustScore(
+    walletAddress,
+    network, // -3 for testnet, -239 for mainnet
+    jwt
+  );
   console.log("Trust Score:", trustScoreResponse);
   // Example response:
   // {
-  //     trustScore: 85,
-  //     expirationDate: 1234567890,
-  //     signature: Buffer.from('...'),
+  //     score: 85,
+  //     expiration: 1234567890,
+  //     signature: "hex string",
+  //     isRemint: false
   // }
 } catch (error) {
   console.error("Failed to get trust score:", error);
@@ -189,99 +96,106 @@ try {
 Before sending the transaction, calculate the total required fee:
 
 ```typescript
-// Calculate fees for new attestation
-const fee = await sdk.calculateTransactionFee(isUpdate); // false for new attestation, true for update
+const fee = await sdk.calculateTransactionFee(
+  isRemint, // true for update, false for new attestation
+  contractAdapter
+);
 
 console.log("Transaction Fees:", {
-  createFee: fees.createFee.toString(), // Base attestation fee from contract
-  gasFee: fees.gasFee.toString(), // Gas fee (0.05 TON)
-  commission: fees.commission.toString(), // Min commission (0.01 TON)
-  storage: fees.storage.toString(), // Jetton storage fee (0.001 TON)
-  total: fees.total.toString(), // Total fee required
+  createFee: fee.createFee.toString(),
+  gasFee: fee.gasFee.toString(),
+  commission: fee.commission.toString(),
+  storage: fee.storage.toString(),
+  total: fee.total.toString(),
 });
 ```
 
-The total transaction fee includes:
+### 5. Create Attestation
 
-- Base attestation fee (retrieved from contract)
-  - For new attestation: `getCreateAttestationFee`
-  - For update: `getUpdateAttestationFee`
-- Gas fee (0.05 TON)
-- Minimum commission (0.01 TON)
-- Jetton storage fee (0.001 TON)
-
-Fee Constants:
+Create and send an attestation transaction:
 
 ```typescript
-TON_DEFAULT_GAS = toNano("0.05"); // 0.05 TON
-TON_MIN_COMMISSION = toNano("0.01"); // 0.01 TON
-TON_MIN_JETTON_STORAGE = toNano("0.001"); // 0.001 TON
-```
+const hapiContract = HapiTonAttestation.createFromAddress(
+  config.tonTestnet.score,
+  contractAdapter
+);
 
-Make sure your wallet has sufficient balance to cover the total fee.
+const signatureBuffer = Buffer.from(localTrustScore.signature, "hex");
 
-### 5. Prepare Attestation Transaction
-
-Create an attestation transaction using the trust score data:
-
-```typescript
-const createAttestationOpts = {
-  queryId: Date.now(), // Unique query ID
-  trustScore: trustScoreResponse.trustScore,
-  expirationDate: trustScoreResponse.expirationDate,
-  signature: trustScoreResponse.signature,
+await hapiContract.sendCreateAttestation(sender, {
+  queryId: 0,
   value: fee,
-  referralId: BigInt("YOUR_REFERRAL_CODE"), // Referral ID
-};
+  trustScore: localTrustScore.score,
+  expirationDate: localTrustScore.expiration,
+  signature: signatureBuffer,
+  referralId: 0n,
+});
 
-const transaction = sdk.prepareCreateAttestation(createAttestationOpts);
+// Track the attestation result
+const result = await sdk.trackAttestationResult(messageHash);
 ```
 
-### 6. Send Transaction
+### 6. Get On-chain Trust Score
 
-Send the prepared transaction using a wallet provider:
+To retrieve the trust score from the blockchain:
 
 ```typescript
-// Example using TON Wallet
-const provider = sdk.contractAdapter.open(
-  Address.parse(sdk.config.contractAddress)
+const userJettonAddress =
+  HapiTonAttestation.getStaticUserJettonAddress(walletAddress);
+
+const jettonContract = UserTonJetton.createFromAddress(
+  userJettonAddress,
+  contractAdapter
 );
-await sdk.sendCreateAttestation(
-  provider,
-  walletContract, // Your wallet contract instance
-  createAttestationOpts
-);
+
+const onchainUserScore = await jettonContract.getAttestationData();
 ```
 
-### 7. Track Attestation Result
+## Example Implementation
 
-After sending the transaction, track its status:
+A complete example implementation can be found in the `example` directory. The example demonstrates:
+
+- TON Connect integration
+- Authentication flow
+- Trust score retrieval
+- Attestation creation
+- On-chain data reading
+
+To run the example:
+
+1. Navigate to the example directory
+2. Install dependencies: `npm install`
+3. Start the development server: `npm run dev`
+
+## Configuration
+
+The SDK supports the following configuration options:
 
 ```typescript
-const userAddress = "EQAvUDmC..."; // User's TON address
-const result = await sdk.trackAttestationResult(
-  userAddress,
-  trustScoreResponse.trustScore
-);
-
-// Example response:
-// {
-//     status: true/false,
-//     data: {
-//         trustScore: BigInt,
-//         expirationDate: BigInt,
-//         attestationAddress: Address,
-//         commissionOwner: Address
-//     }
-// }
+interface HapiSDKConfig {
+  referralId?: number | bigint;
+  staging?: boolean;
+  testnet?: boolean;
+}
 ```
 
-The `trackAttestationResult` method automatically handles waiting for the transaction. It:
+- `referralId`: Optional referral ID for tracking
+- `staging`: Use staging environment (default: false)
+- `testnet`: Use testnet instead of mainnet (default: false)
 
-- Polls every 7 seconds
-- Makes up to 9 retry attempts
-- Returns the attestation status and data
-- Updates attestation count if successful
+### SDK works with TON API clients and use TON API method for getting the transaction hash based on transaction message hash, be sure to provide the TON API key and create public client like it demonstrated in example folder.
+
+## Dependencies
+
+The SDK requires the following dependencies:
+
+- @ton-api/client
+- @ton-api/ton-adapter
+- @ton/core
+- @tonconnect/ui-react
+- buffer
+
+Make sure to install these dependencies in your project.
 
 ## Error Handling
 
@@ -326,13 +240,6 @@ Query attestation information for a specific address:
 const attestation = await sdk.getAttestationByAddress(userAddress);
 console.log("Attestation:", attestation);
 ```
-
-## Best Practices
-
-1. **Error Handling**: Always implement proper error handling for all SDK operations.
-2. **Transaction Values**: Ensure sufficient TON balance for transaction fees.
-3. **JWT Management**: Securely store and manage JWT tokens.
-4. **Polling Intervals**: The SDK implements automatic polling with reasonable intervals.
 
 ## Type Definitions
 

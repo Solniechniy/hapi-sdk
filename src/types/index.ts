@@ -54,6 +54,8 @@ export interface SDKConfig {
   contractAddress: string;
   nodeUrl: string;
   referralId: number;
+  network: number;
+  tonApiKey?: string;
 }
 
 export interface AttestationChangeEvent {

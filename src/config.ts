@@ -9,6 +9,7 @@ interface Config {
     score: string;
     nodeUrl: string;
   }>;
+  tonApiPath: (hash: string) => string;
 }
 
 export const config: Readonly<Config> = {
@@ -22,4 +23,5 @@ export const config: Readonly<Config> = {
     score: "kQC60vGFCtYeQi-S0p6Lhfghd0vYS1YcTiHDWhEmuQ39QpCh",
     nodeUrl: "https://testnet.tonapi.io",
   },
+  tonApiPath: (hash: string) => `/v2/blockchain/messages/${hash}/transaction`,
 };

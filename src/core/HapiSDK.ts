@@ -1,5 +1,4 @@
 import { Address } from "@ton/core";
-import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { SDKConfig, TrustResponseData, UserResponse } from "../types";
 import { HapiTonAttestation } from "../contracts/HapiAttestation";
@@ -20,12 +19,15 @@ export class HapiSDK {
     referralId: number;
     staging?: boolean;
     testnet?: boolean;
+    tonApiKey?: string;
   }) {
     this.config = {
       hapiEndpoint: args.staging ? config.apiStaging : config.apiProduction,
       contractAddress: config.ton.score,
       nodeUrl: args.testnet ? config.tonTestnet.nodeUrl : config.ton.nodeUrl,
+      network: args.testnet ? -3 : -239,
       referralId: args.referralId,
+      tonApiKey: args.tonApiKey,
     };
   }
 
@@ -133,9 +135,7 @@ export class HapiSDK {
   }
 
   async trackAttestationResult(
-    userAddress: string,
-    trustScore: number,
-    contractAdapter: ContractAdapter,
+    transactionMessageHash: string,
     timeInterval = 7000,
     maxRetries = 9
   ) {
@@ -143,47 +143,38 @@ export class HapiSDK {
     let status: boolean | null = null;
     let data;
 
-    const userJettonAddress =
-      HapiTonAttestation.getStaticUserJettonAddress(userAddress);
-    const jettonAddress = UserTonJetton.createFromAddress(
-      userJettonAddress,
-      contractAdapter
-    );
-
     while (attempt < maxRetries) {
       try {
         await delay(timeInterval);
-        const localData = await jettonAddress.getAttestationData();
+        const transactionData = await axios.get(
+          this.config.nodeUrl + config.tonApiPath(transactionMessageHash)
+        );
 
-        if (localData.trustScore >= trustScore) {
+        if (transactionData.status === 200 && transactionData.data.hash) {
           status = true;
-          data = localData;
-          // TODO:
-          //  try {
-          //   await axios.post(
-          //     `${this.config.hapiEndpoint}/attestation/count`,
-          //     {
-          //       address: userAddress,
-          //       refId: this.config.referralId,
-          //     },
-          //     {
-          //       headers: {
-          //         "Content-Type": "application/json",
-          //       },
-          //     }
-          //   );
-          // } catch (error) {
-          //   console.error("Error updating attestation count:", error);
-          // }
+          try {
+            await axios.post(
+              `${this.config.hapiEndpoint}/ref/v2/ref_transaction`,
+              {
+                hash: transactionData.data.hash,
+                network: this.config.network,
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${this.config.tonApiKey}`,
+                },
+              }
+            );
+          } catch (error) {
+            console.error("Error updating attestation count:", error);
+          }
           break;
         } else {
           status = false;
         }
       } catch (error) {
-        console.error(
-          `Error: while get jettonAddress=${jettonAddress} or getTrustScore\n\n`,
-          error
-        );
+        console.error(`Error: while get locating transaction`, error);
       }
 
       attempt++;
